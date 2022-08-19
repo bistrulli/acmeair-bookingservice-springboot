@@ -38,142 +38,137 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequestMapping("/")
 public class BookingServiceRest {
 
-  @Autowired
-  BookingService bs;
+	@Autowired
+	BookingService bs;
 
-  @Autowired
-  private SecurityUtils secUtils;
+	@Autowired
+	private SecurityUtils secUtils;
 
-  @Autowired
-  private RewardTracker rewardTracker;
+	@Autowired
+	private RewardTracker rewardTracker;
 
-  private static final Logger logger = Logger.getLogger(BookingServiceRest.class.getName());
+	private static final Logger logger = Logger.getLogger(BookingServiceRest.class.getName());
 
+	/**
+	 * Book flights.
+	 */
+	@RequestMapping(value = "/bookflights", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+	public String bookFlights(@RequestParam String userid, @RequestParam String toFlightId,
+			@RequestParam String toFlightSegId, @RequestParam String retFlightId, @RequestParam String retFlightSegId,
+			@RequestParam boolean oneWayFlight, @CookieValue(value = "jwt_token", required = false) String jwtToken) {
+		try {
 
-  /**
-   * Book flights.
-   */
-  @RequestMapping(value = "/bookflights", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-  public String bookFlights(@RequestParam String userid,
-      @RequestParam String toFlightId,
-      @RequestParam String toFlightSegId,
-      @RequestParam String retFlightId,
-      @RequestParam String retFlightSegId,
-      @RequestParam boolean oneWayFlight,
-      @CookieValue(value = "jwt_token", required = false) String jwtToken) {
-    try {
+			// make sure the user isn't trying to bookflights for someone else
+			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
+				throw new ForbiddenException();
+			}
 
-      // make sure the user isn't trying to bookflights for someone else
-      if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
-        throw new ForbiddenException();
-      }
+			String bookingIdTo = bs.bookFlight(userid, toFlightSegId, toFlightId);
+			if (rewardTracker.trackRewardMiles()) {
+				rewardTracker.updateRewardMiles(userid, toFlightSegId, true);
+			}
 
-      String bookingIdTo = bs.bookFlight(userid, toFlightSegId, toFlightId);
-      if (rewardTracker.trackRewardMiles()) {
-        rewardTracker.updateRewardMiles(userid, toFlightSegId, true);
-      }
+			String bookingInfo = "";
 
-      String bookingInfo = "";
+			String bookingIdReturn = null;
+			if (!oneWayFlight) {
+				bookingIdReturn = bs.bookFlight(userid, retFlightSegId, retFlightId);
+				if (rewardTracker.trackRewardMiles()) {
+					rewardTracker.updateRewardMiles(userid, retFlightSegId, true);
+				}
+				bookingInfo = "{\"oneWay\":false,\"returnBookingId\":\"" + bookingIdReturn + "\",\"departBookingId\":\""
+						+ bookingIdTo + "\"}";
+			} else {
+				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
+			}
+			return bookingInfo;
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new InternalServerErrorException();
+		}
+	}
 
-      String bookingIdReturn = null;
-      if (!oneWayFlight) {
-        bookingIdReturn = bs.bookFlight(userid, retFlightSegId, retFlightId);
-        if (rewardTracker.trackRewardMiles()) {
-          rewardTracker.updateRewardMiles(userid, retFlightSegId, true);
-        }
-        bookingInfo = "{\"oneWay\":false,\"returnBookingId\":\"" + bookingIdReturn + "\",\"departBookingId\":\""
-            + bookingIdTo + "\"}";
-      } else {
-        bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
-      }
-      return bookingInfo;
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new InternalServerErrorException();
-    }
-  }
+	/**
+	 * Get Booking by Number.
+	 */
+	@RequestMapping("/bybookingnumber/{userid}/{number}")
+	public String getBookingByNumber(@PathVariable("number") String number, @PathVariable("userid") String userid,
+			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
+		try {
+			// make sure the user isn't trying to bookflights for someone else
+			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
+				throw new ForbiddenException();
+			}
+			return bs.getBooking(userid, number);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-  /**
-   * Get Booking by Number.
-   */
-  @RequestMapping("/bybookingnumber/{userid}/{number}")
-  public String getBookingByNumber(@PathVariable("number") String number, @PathVariable("userid") String userid,
-      @CookieValue(value = "jwt_token", required = false) String jwtToken) {
-    try {
-      // make sure the user isn't trying to bookflights for someone else
-      if (secUtils.secureUserCalls()  && !secUtils.validateJwt(userid, jwtToken)) {
-        throw new ForbiddenException();
-      }
-      return bs.getBooking(userid, number);
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
+	/**
+	 * Get bookins for a customer.
+	 */
+	@RequestMapping("/byuser/{user}")
+	public String getBookingsByUser(@PathVariable("user") String user,
+			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
 
-  /**
-   * Get bookins for a customer.
-   */
-  @RequestMapping("/byuser/{user}")
-  public String getBookingsByUser(@PathVariable("user") String user,
-      @CookieValue(value = "jwt_token", required = false) String jwtToken) {
+		try {
 
-    try {
+			logger.fine("getBookingsByUser user: " + user + ", jwtToken: " + jwtToken);
 
-      logger.fine("getBookingsByUser user: " + user + ", jwtToken: " + jwtToken);
+			// make sure the user isn't trying to bookflights for someone else
+			if (secUtils.secureUserCalls() && !secUtils.validateJwt(user, jwtToken)) {
+				throw new ForbiddenException();
+			}
+			return bs.getBookingsByUser(user).toString();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-      // make sure the user isn't trying to bookflights for someone else
-      if (secUtils.secureUserCalls()  && !secUtils.validateJwt(user, jwtToken)) {
-        throw new ForbiddenException();
-      }
-      return bs.getBookingsByUser(user).toString();
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
-  }
+	/**
+	 * Cancel bookings.
+	 */
+	@RequestMapping(value = "/cancelbooking", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+	public String cancelBookingsByNumber(@RequestParam String number, @RequestParam String userid,
+			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
+		try {
 
-  /**
-   * Cancel bookings.
-   */
-  @RequestMapping(value = "/cancelbooking", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-  public String cancelBookingsByNumber(@RequestParam String number, @RequestParam String userid,
-      @CookieValue(value = "jwt_token", required = false) String jwtToken) {
-    try {
-     
-      // make sure the user isn't trying to bookflights for someone else
-      if (secUtils.secureUserCalls()  && !secUtils.validateJwt(userid, jwtToken)) {
-        throw new ForbiddenException();
-      }
+			// make sure the user isn't trying to bookflights for someone else
+			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
+				throw new ForbiddenException();
+			}
 
-      if (rewardTracker.trackRewardMiles()) {
-        try {
-          ObjectMapper mapper = new ObjectMapper();
-          JsonNode booking = mapper.readTree(bs.getBooking(userid, number));
-          
-          bs.cancelBooking(userid, number);
-          rewardTracker.updateRewardMiles(userid, booking.get("flightSegmentId").asText(), false);
-        } catch (RuntimeException re) {
-          // booking does not exist
-          if (logger.isLoggable(Level.FINE)) {
-            logger.fine("booking : This booking does not exist: " + number);
-          }
-        }
-      } else {
-        bs.cancelBooking(userid, number);
-      }
+			if (rewardTracker.trackRewardMiles()) {
+				try {
+					ObjectMapper mapper = new ObjectMapper();
+					JsonNode booking = mapper.readTree(bs.getBooking(userid, number));
 
-      return "booking " + number + " deleted.";
+					bs.cancelBooking(userid, number);
+					rewardTracker.updateRewardMiles(userid, booking.get("flightSegmentId").asText(), false);
+				} catch (RuntimeException re) {
+					// booking does not exist
+					if (logger.isLoggable(Level.FINE)) {
+						logger.fine("booking : This booking does not exist: " + number);
+					}
+				}
+			} else {
+				bs.cancelBooking(userid, number);
+			}
 
-    } catch (Exception e) {
-      e.printStackTrace();
-      throw new InternalServerErrorException();
-    }
-  }
+			return "booking " + number + " deleted.";
 
-  @RequestMapping("/")
-  public String checkStatus() {
-    return "OK";
-  }
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new InternalServerErrorException();
+		}
+	}
+
+	@RequestMapping("/")
+	public String checkStatus() {
+		return "OK";
+	}
 
 }
