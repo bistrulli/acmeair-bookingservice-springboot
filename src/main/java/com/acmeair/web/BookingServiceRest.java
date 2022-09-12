@@ -16,10 +16,13 @@
 
 package com.acmeair.web;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +51,11 @@ public class BookingServiceRest {
 	private RewardTracker rewardTracker;
 
 	private static final Logger logger = Logger.getLogger(BookingServiceRest.class.getName());
+	
+	@Value("${ms.hw}")
+	private Float hw;
+	
+	private static final AtomicInteger users = new AtomicInteger(0); 
 
 	/**
 	 * Book flights.
@@ -81,6 +89,8 @@ public class BookingServiceRest {
 			} else {
 				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
 			}
+			
+			this.doWork(100l);
 			return bookingInfo;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -99,6 +109,7 @@ public class BookingServiceRest {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
 				throw new ForbiddenException();
 			}
+			this.doWork(120l);
 			return bs.getBooking(userid, number);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -121,6 +132,7 @@ public class BookingServiceRest {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(user, jwtToken)) {
 				throw new ForbiddenException();
 			}
+			this.doWork(140l);
 			return bs.getBookingsByUser(user).toString();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -157,7 +169,8 @@ public class BookingServiceRest {
 			} else {
 				bs.cancelBooking(userid, number);
 			}
-
+			
+			this.doWork(87l);
 			return "booking " + number + " deleted.";
 
 		} catch (Exception e) {
@@ -169,6 +182,19 @@ public class BookingServiceRest {
 	@RequestMapping("/")
 	public String checkStatus() {
 		return "OK";
+	}
+	
+	private void doWork(long stime) {
+		BookingServiceRest.users.incrementAndGet();
+		Double isTime = Long.valueOf(stime).doubleValue();
+		Float d = (float) (isTime.floatValue() * (BookingServiceRest.users.floatValue() / this.hw));
+		try {
+			TimeUnit.MILLISECONDS.sleep(Math.max(Math.round(d), Math.round(isTime)));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			BookingServiceRest.users.decrementAndGet();
+		}
 	}
 
 }
