@@ -16,6 +16,7 @@
 
 package com.acmeair.web;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -37,9 +38,12 @@ import com.acmeair.service.BookingService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ctrlmnt.ControllableService;
+import ctrlmnt.CtrlMNT;
+
 @RestController
 @RequestMapping("/")
-public class BookingServiceRest {
+public class BookingServiceRest implements ControllableService{
 
 	@Autowired
 	BookingService bs;
@@ -56,6 +60,14 @@ public class BookingServiceRest {
 	private Float hw;
 	
 	private static final AtomicInteger users = new AtomicInteger(0); 
+	
+	@Value("${ms.name}")
+	private String msname;
+
+	public BookingServiceRest() {
+		CtrlMNT mnt = new CtrlMNT(this);
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 200, TimeUnit.MILLISECONDS);
+	}
 
 	/**
 	 * Book flights.
@@ -195,6 +207,21 @@ public class BookingServiceRest {
 		} finally {
 			BookingServiceRest.users.decrementAndGet();
 		}
+	}
+
+	@Override
+	public Float getHw() {
+		return this.hw;
+	}
+
+	@Override
+	public String getName() {
+		return this.msname;
+	}
+
+	@Override
+	public void setHw(Float hw) {
+		this.hw=hw;
 	}
 
 }
