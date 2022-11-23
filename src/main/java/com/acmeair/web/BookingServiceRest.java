@@ -43,7 +43,7 @@ import ctrlmnt.CtrlMNT;
 
 @RestController
 @RequestMapping("/")
-public class BookingServiceRest implements ControllableService{
+public class BookingServiceRest extends ControllableService {
 
 	@Autowired
 	BookingService bs;
@@ -55,12 +55,12 @@ public class BookingServiceRest implements ControllableService{
 	private RewardTracker rewardTracker;
 
 	private static final Logger logger = Logger.getLogger(BookingServiceRest.class.getName());
-	
+
 	@Value("${ms.hw}")
 	private Float hw;
-	
-	private static final AtomicInteger users = new AtomicInteger(0); 
-	
+
+	private static final AtomicInteger users = new AtomicInteger(0);
+
 	@Value("${ms.name}")
 	private String msname;
 
@@ -101,7 +101,7 @@ public class BookingServiceRest implements ControllableService{
 			} else {
 				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
 			}
-			
+
 			this.doWork(100l);
 			return bookingInfo;
 		} catch (Exception e) {
@@ -181,7 +181,7 @@ public class BookingServiceRest implements ControllableService{
 			} else {
 				bs.cancelBooking(userid, number);
 			}
-			
+
 			this.doWork(87l);
 			return "booking " + number + " deleted.";
 
@@ -194,19 +194,6 @@ public class BookingServiceRest implements ControllableService{
 	@RequestMapping("/")
 	public String checkStatus() {
 		return "OK";
-	}
-	
-	private void doWork(long stime) {
-		BookingServiceRest.users.incrementAndGet();
-		Double isTime = Long.valueOf(stime).doubleValue();
-		Float d = (float) (isTime.floatValue() * (BookingServiceRest.users.floatValue() / this.hw));
-		try {
-			TimeUnit.MILLISECONDS.sleep(Math.max(Math.round(d), Math.round(isTime)));
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} finally {
-			BookingServiceRest.users.decrementAndGet();
-		}
 	}
 
 	@Override
@@ -221,7 +208,22 @@ public class BookingServiceRest implements ControllableService{
 
 	@Override
 	public void setHw(Float hw) {
-		this.hw=hw;
+		this.hw = hw;
+	}
+
+	@Override
+	public void egress() {
+		BookingServiceRest.users.decrementAndGet();
+	}
+
+	@Override
+	public Integer getUser() {
+		return BookingServiceRest.users.get();
+	}
+
+	@Override
+	public void ingress() {
+		BookingServiceRest.users.incrementAndGet();
 	}
 
 }
