@@ -65,8 +65,8 @@ public class BookingServiceRest extends ControllableService {
 	private String msname;
 
 	public BookingServiceRest() {
-		CtrlMNT mnt = new CtrlMNT(this);
-		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 200, TimeUnit.MILLISECONDS);
+//		CtrlMNT mnt = new CtrlMNT(this);
+//		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 500, TimeUnit.MILLISECONDS);
 	}
 
 	/**
