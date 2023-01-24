@@ -16,7 +16,7 @@
 	</repositories>
 
 	<properties>
-		<java.version>17</java.version>
+		<java.version>15</java.version>
 	</properties>
 
 	<parent>
