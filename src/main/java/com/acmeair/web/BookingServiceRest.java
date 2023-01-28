@@ -102,7 +102,7 @@ public class BookingServiceRest extends ControllableService {
 				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
 			}
 
-			this.doWork(300l);
+			this.doWork(60l);
 			return bookingInfo;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -121,7 +121,7 @@ public class BookingServiceRest extends ControllableService {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(120l);
+			this.doWork(24l);
 			return bs.getBooking(userid, number);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -144,7 +144,7 @@ public class BookingServiceRest extends ControllableService {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(user, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(420l);
+			this.doWork(84l);
 			return bs.getBookingsByUser(user).toString();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -182,7 +182,7 @@ public class BookingServiceRest extends ControllableService {
 				bs.cancelBooking(userid, number);
 			}
 
-			this.doWork(260l);
+			this.doWork(52l);
 			return "booking " + number + " deleted.";
 
 		} catch (Exception e) {
