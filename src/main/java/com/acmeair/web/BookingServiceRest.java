@@ -63,15 +63,13 @@ public class BookingServiceRest extends ControllableService {
 
 	@Value("${ms.name}")
 	private String msname;
-	
+
 	@Value("${ms.iscgroup}")
 	private String iscgroup;
 
 	public BookingServiceRest() {
-		if (!this.iscgroup.equals("y")) {
-			CtrlMNT mnt = new CtrlMNT(this);
-			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 50, TimeUnit.MILLISECONDS);
-		}
+		CtrlMNT mnt = new CtrlMNT(this);
+		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 50, TimeUnit.MILLISECONDS);
 	}
 
 	/**
@@ -229,6 +227,10 @@ public class BookingServiceRest extends ControllableService {
 	@Override
 	public void ingress() {
 		BookingServiceRest.users.incrementAndGet();
+	}
+	
+	public String getIscgroup() {
+		return iscgroup;
 	}
 
 }
