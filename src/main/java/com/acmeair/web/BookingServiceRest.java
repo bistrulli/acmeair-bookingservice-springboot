@@ -68,7 +68,7 @@ public class BookingServiceRest extends ControllableService {
 	private String iscgroup;
 
 	public BookingServiceRest() {
-		if (!this.getIscgroup().equals("y")) {
+		if (!this.iscgroup.equals("y")) {
 			CtrlMNT mnt = new CtrlMNT(this);
 			Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 50, TimeUnit.MILLISECONDS);
 		}
