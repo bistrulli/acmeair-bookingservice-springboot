@@ -67,6 +67,18 @@ public class BookingServiceRest extends ControllableService {
 	@Value("${ms.iscgroup}")
 	private String iscgroup;
 
+	@Value("${ms.stime1}")
+    private long stime1;
+
+	@Value("${ms.stime2}")
+    private long stime2;
+
+    @Value("${ms.stime3}")
+    private long stime3;
+
+    @Value("${ms.stime4}")
+    private long stime4;
+
 	public BookingServiceRest() {
 		CtrlMNT mnt = new CtrlMNT(this);
 		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 50, TimeUnit.MILLISECONDS);
@@ -105,7 +117,7 @@ public class BookingServiceRest extends ControllableService {
 				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
 			}
 
-			this.doWork(60l);
+			this.doWork(this.stime1);
 			return bookingInfo;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -124,7 +136,7 @@ public class BookingServiceRest extends ControllableService {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(24l);
+			this.doWork(this.stime2);
 			return bs.getBooking(userid, number);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -147,7 +159,7 @@ public class BookingServiceRest extends ControllableService {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(user, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(84l);
+			this.doWork(this.stime3);
 			return bs.getBookingsByUser(user).toString();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -185,7 +197,7 @@ public class BookingServiceRest extends ControllableService {
 				bs.cancelBooking(userid, number);
 			}
 
-			this.doWork(52l);
+			this.doWork(this.stime4);
 			return "booking " + number + " deleted.";
 
 		} catch (Exception e) {
