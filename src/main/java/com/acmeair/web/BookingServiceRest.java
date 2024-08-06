@@ -38,8 +38,14 @@ import com.acmeair.service.BookingService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ctrlmnt.MonitoringThread;
 import ctrlmnt.ControllableService;
 import ctrlmnt.CtrlMNT;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/")
@@ -67,21 +73,27 @@ public class BookingServiceRest extends ControllableService {
 	@Value("${ms.iscgroup}")
 	private String iscgroup;
 
-	@Value("${ms.stime1}")
-    private long stime1;
+	@Value("${ms.stime.bookflights}")
+    private long stimeBookFlights;
 
-	@Value("${ms.stime2}")
-    private long stime2;
+	@Value("${ms.stime.bybookingnumber}")
+    private long stimeByBookingNumber;
 
-    @Value("${ms.stime3}")
-    private long stime3;
+    @Value("${ms.stime.byuser}")
+    private long stimeByUser;
 
-    @Value("${ms.stime4}")
-    private long stime4;
+    @Value("${ms.stime.cancelbooking}")
+    private long stimeCancelBooking;
+
+    private MonitoringThread monitor = null;
 
 	public BookingServiceRest() {
 		CtrlMNT mnt = new CtrlMNT(this);
 		Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(mnt, 0, 50, TimeUnit.MILLISECONDS);
+
+		monitor = new MonitoringThread();
+        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(monitor, 0, 30, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -91,6 +103,10 @@ public class BookingServiceRest extends ControllableService {
 	public String bookFlights(@RequestParam String userid, @RequestParam String toFlightId,
 			@RequestParam String toFlightSegId, @RequestParam String retFlightId, @RequestParam String retFlightSegId,
 			@RequestParam boolean oneWayFlight, @CookieValue(value = "jwt_token", required = false) String jwtToken) {
+		
+		ControllableService.activeRequests.incrementAndGet();
+		long startTime = System.currentTimeMillis(); // TODO nanotime
+
 		try {
 
 			// make sure the user isn't trying to bookflights for someone else
@@ -117,7 +133,16 @@ public class BookingServiceRest extends ControllableService {
 				bookingInfo = "{\"oneWay\":true,\"departBookingId\":\"" + bookingIdTo + "\"}";
 			}
 
-			this.doWork(this.stime1);
+			this.doWork(this.stimeBookFlights);
+
+			logger.info("New request arrived. Total:" + ControllableService.requestCount.addAndGet(1));
+			long endTime = System.currentTimeMillis();
+	        long elapsedTime = endTime - startTime; // Elapsed time in milliseconds
+	        logger.info("Single request service time: " + elapsedTime + " ms");
+
+	        logger.info("Current serviceTimeSum: " + ControllableService.serviceTimesSum.addAndGet(elapsedTime) + " ms");
+	        ControllableService.activeRequests.decrementAndGet();
+
 			return bookingInfo;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -131,12 +156,25 @@ public class BookingServiceRest extends ControllableService {
 	@RequestMapping("/bybookingnumber/{userid}/{number}")
 	public String getBookingByNumber(@PathVariable("number") String number, @PathVariable("userid") String userid,
 			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
+
+		ControllableService.activeRequests.incrementAndGet();
+		long startTime = System.currentTimeMillis(); // TODO nanotime
+
 		try {
 			// make sure the user isn't trying to bookflights for someone else
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(userid, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(this.stime2);
+			this.doWork(this.stimeByBookingNumber);
+
+			logger.info("New request arrived. Total:" + ControllableService.requestCount.addAndGet(1));
+			long endTime = System.currentTimeMillis();
+	        long elapsedTime = endTime - startTime; // Elapsed time in milliseconds
+	        logger.info("Single request service time: " + elapsedTime + " ms");
+
+	        logger.info("Current serviceTimeSum: " + ControllableService.serviceTimesSum.addAndGet(elapsedTime) + " ms");
+	        ControllableService.activeRequests.decrementAndGet();
+
 			return bs.getBooking(userid, number);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -151,6 +189,9 @@ public class BookingServiceRest extends ControllableService {
 	public String getBookingsByUser(@PathVariable("user") String user,
 			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
 
+		ControllableService.activeRequests.incrementAndGet();
+		long startTime = System.currentTimeMillis(); // TODO nanotime
+
 		try {
 
 			logger.fine("getBookingsByUser user: " + user + ", jwtToken: " + jwtToken);
@@ -159,7 +200,16 @@ public class BookingServiceRest extends ControllableService {
 			if (secUtils.secureUserCalls() && !secUtils.validateJwt(user, jwtToken)) {
 				throw new ForbiddenException();
 			}
-			this.doWork(this.stime3);
+			this.doWork(this.stimeByUser);
+
+			logger.info("New request arrived. Total:" + ControllableService.requestCount.addAndGet(1));
+			long endTime = System.currentTimeMillis();
+	        long elapsedTime = endTime - startTime; // Elapsed time in milliseconds
+	        logger.info("Single request service time: " + elapsedTime + " ms");
+
+	        logger.info("Current serviceTimeSum: " + ControllableService.serviceTimesSum.addAndGet(elapsedTime) + " ms");
+	        ControllableService.activeRequests.decrementAndGet();
+
 			return bs.getBookingsByUser(user).toString();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -173,6 +223,10 @@ public class BookingServiceRest extends ControllableService {
 	@RequestMapping(value = "/cancelbooking", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
 	public String cancelBookingsByNumber(@RequestParam String number, @RequestParam String userid,
 			@CookieValue(value = "jwt_token", required = false) String jwtToken) {
+
+		ControllableService.activeRequests.incrementAndGet();
+		long startTime = System.currentTimeMillis(); // TODO nanotime
+
 		try {
 
 			// make sure the user isn't trying to bookflights for someone else
@@ -197,7 +251,16 @@ public class BookingServiceRest extends ControllableService {
 				bs.cancelBooking(userid, number);
 			}
 
-			this.doWork(this.stime4);
+			this.doWork(this.stimeCancelBooking);
+
+			logger.info("New request arrived. Total:" + ControllableService.requestCount.addAndGet(1));
+			long endTime = System.currentTimeMillis();
+	        long elapsedTime = endTime - startTime; // Elapsed time in milliseconds
+	        logger.info("Single request service time: " + elapsedTime + " ms");
+
+	        logger.info("Current serviceTimeSum: " + ControllableService.serviceTimesSum.addAndGet(elapsedTime) + " ms");
+	        ControllableService.activeRequests.decrementAndGet();
+
 			return "booking " + number + " deleted.";
 
 		} catch (Exception e) {
